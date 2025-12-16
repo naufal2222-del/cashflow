@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <link rel="manifest" href="manifest.json">
+
+<!-- Untuk iPhone -->
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#2563eb">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cashflow - Catatan Keuangan</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0d6efd">
+  <style>
+    * { box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+    body { background: #f1f5f9; margin: 0; padding: 2rem; color: #0f172a; }
+    h1 { text-align: center; margin-bottom: 1rem; }
+    .container { max-width: 1100px; margin: auto; display: grid; gap: 1.5rem; }
+    .card { background: #fff; padding: 1.5rem; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+    .income { background: #dcfce7; padding: 1rem; border-radius: 12px; text-align: center; }
+    .expense { background: #fee2e2; padding: 1rem; border-radius: 12px; text-align: center; }
+    .balance { background: #e0f2fe; padding: 1rem; border-radius: 12px; text-align: center; }
+    form, .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
+    input, select, button { padding: 0.7rem; border-radius: 8px; border: 1px solid #cbd5f5; }
+    button { background: #2563eb; color: #fff; font-weight: 600; cursor: pointer; border: none; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { padding: 0.8rem; border-bottom: 1px solid #e5e7eb; text-align: left; }
+    th { background: #f8fafc; }
+    .type-income { color: green; font-weight: 600; }
+    .type-expense { color: red; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<h1>💰 Cashflow</h1>
+
+<div class="container">
+
+  <div class="card summary">
+    <div class="income"><h3>Pemasukan</h3><p id="totalIncome">Rp 0</p></div>
+    <div class="expense"><h3>Pengeluaran</h3><p id="totalExpense">Rp 0</p></div>
+    <div class="balance"><h3>Sisa Saldo</h3><p id="balance">Rp 0</p></div>
+  </div>
+
+  <div class="card">
+    <h3>Input Transaksi</h3>
+    <form id="transactionForm">
+      <input type="date" id="date" required />
+      <input type="text" id="description" placeholder="Keterangan" required />
+      <select id="type" required>
+        <option value="income">Pemasukan</option>
+        <option value="expense">Pengeluaran</option>
+      </select>
+      <input type="number" id="amount" placeholder="Nominal" required />
+      <button type="submit">Tambah</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>Filter Data</h3>
+    <div class="filters">
+      <input type="month" id="filterMonth" />
+      <select id="filterType">
+        <option value="all">Semua</option>
+        <option value="income">Pemasukan</option>
+        <option value="expense">Pengeluaran</option>
+      </select>
+      <button onclick="applyFilter()">Terapkan Filter</button>
+      <button onclick="resetFilter()">Reset</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Catatan Transaksi</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Tanggal</th>
+          <th>Keterangan</th>
+          <th>Jenis</th>
+          <th>Nominal</th>
+        </tr>
+      </thead>
+      <tbody id="transactionTable"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+  let transactions = JSON.parse(localStorage.getItem('cashflowData')) || [];
+  let filteredData = [...transactions];
+
+  const table = document.getElementById('transactionTable');
+  const totalIncomeEl = document.getElementById('totalIncome');
+  const totalExpenseEl = document.getElementById('totalExpense');
+  const balanceEl = document.getElementById('balance');
+
+  function formatRupiah(num) { return 'Rp ' + num.toLocaleString('id-ID'); }
+
+  function render(data = filteredData) {
+    table.innerHTML = '';
+    let income = 0, expense = 0;
+
+    data.forEach(tx => {
+      if (tx.type === 'income') income += tx.amount;
+      else expense += tx.amount;
+
+      table.innerHTML += `
+        <tr>
+          <td>${tx.date}</td>
+          <td>${tx.description}</td>
+          <td class="${tx.type === 'income' ? 'type-income' : 'type-expense'}">
+            ${tx.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}
+          </td>
+          <td>${formatRupiah(tx.amount)}</td>
+        </tr>`;
+    });
+
+    totalIncomeEl.textContent = formatRupiah(income);
+    totalExpenseEl.textContent = formatRupiah(expense);
+    balanceEl.textContent = formatRupiah(income - expense);
+  }
+
+  function applyFilter() {
+    const month = document.getElementById('filterMonth').value;
+    const type = document.getElementById('filterType').value;
+
+    filteredData = transactions.filter(tx => {
+      const matchMonth = month ? tx.date.startsWith(month) : true;
+      const matchType = type === 'all' ? true : tx.type === type;
+      return matchMonth && matchType;
+    });
+
+    render();
+  }
+
+  function resetFilter() {
+    filteredData = [...transactions];
+    document.getElementById('filterMonth').value = '';
+    document.getElementById('filterType').value = 'all';
+    render();
+  }
+
+  document.getElementById('transactionForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const tx = {
+      date: date.value,
+      description: description.value,
+      type: type.value,
+      amount: Number(amount.value)
+    };
+    transactions.push(tx);
+    localStorage.setItem('cashflowData', JSON.stringify(transactions));
+    resetFilter();
+    e.target.reset();
+  });
+
+  render();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+navigator.serviceWorker.register('service-worker.js');
+}
+</script>
+</body>
+</html>
