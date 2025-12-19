@@ -1,236 +1,167 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>💰 Cashflow</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cashflow</title>
 
-  <!-- jsPDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#2563eb">
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f8;
-      margin: 0;
-      padding: 16px;
-    }
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 
-    h1 {
-      text-align: center;
-      margin-bottom: 10px;
-    }
-
-    .card {
-      background: white;
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 15px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-
-    input, select, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 6px;
-      margin-bottom: 10px;
-      font-size: 14px;
-    }
-
-    button {
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    .btn-add { background: #007bff; color: white; }
-    .btn-pdf { background: #6f42c1; color: white; }
-
-    .summary {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .summary div {
-      flex: 1;
-      padding: 10px;
-      border-radius: 8px;
-      text-align: center;
-      color: white;
-      font-weight: bold;
-    }
-
-    .income { background: #007bff; }
-    .expense { background: #dc3545; }
-    .balance { background: #28a745; }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-
-    th, td {
-      padding: 8px;
-      border-bottom: 1px solid #ddd;
-      text-align: center;
-    }
-
-    .hapus {
-      background: #dc3545;
-      color: white;
-      padding: 5px 8px;
-      border-radius: 5px;
-      font-size: 12px;
-    }
-
-    @media (max-width: 600px) {
-      table { font-size: 12px; }
-    }
-  </style>
+<style>
+*{box-sizing:border-box;font-family:Poppins}
+body{background:#f1f5f9;margin:0;padding:1rem}
+.container{max-width:900px;margin:auto;display:grid;gap:1rem}
+.card{background:#fff;padding:1rem;border-radius:16px;box-shadow:0 6px 20px rgba(0,0,0,.08)}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem}
+.summary div{padding:1rem;border-radius:12px;text-align:center}
+.income{background:#dbeafe}
+.expense{background:#fee2e2}
+.balance{background:#dcfce7}
+form,.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.6rem}
+input,select,button{padding:.6rem;border-radius:10px;border:1px solid #cbd5e1}
+button{background:#2563eb;color:white;font-weight:600;border:none;cursor:pointer}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th,td{padding:.6rem;border-bottom:1px solid #e5e7eb}
+.btn-delete{background:#ef4444;color:white;border:none;padding:.3rem .6rem;border-radius:6px}
+@media(max-width:600px){.summary{grid-template-columns:1fr}}
+</style>
 </head>
 
 <body>
+<h2 style="text-align:center">💰 Cashflow</h2>
 
-<h1>💰 Cashflow</h1>
+<div class="container">
+
+<div class="card summary">
+  <div class="income"><h4>Pemasukan</h4><p id="in">Rp 0</p></div>
+  <div class="expense"><h4>Pengeluaran</h4><p id="out">Rp 0</p></div>
+  <div class="balance"><h4>Saldo</h4><p id="bal">Rp 0</p></div>
+</div>
 
 <div class="card">
-  <h3>Tambah Data</h3>
+<form id="form">
+  <input type="date" id="date" required>
+  <input type="text" id="desc" placeholder="Keterangan" required>
   <select id="type">
     <option value="income">Pemasukan</option>
     <option value="expense">Pengeluaran</option>
   </select>
-
-  <input type="number" id="amount" placeholder="Jumlah (Rp)" />
-  <input type="text" id="note" placeholder="Keterangan" />
-  <input type="date" id="date" />
-
-  <button class="btn-add" onclick="addData()">Simpan</button>
+  <input type="number" id="amount" placeholder="Nominal" required>
+  <button>Tambah</button>
+</form>
 </div>
 
-<div class="card summary">
-  <div class="income">Pemasukan<br>Rp <span id="totalIncome">0</span></div>
-  <div class="expense">Pengeluaran<br>Rp <span id="totalExpense">0</span></div>
-  <div class="balance">Saldo<br>Rp <span id="balance">0</span></div>
-</div>
-
-<div class="card">
-  <h3>Filter</h3>
-  <input type="month" id="filterMonth" />
+<div class="card filters">
+  <input type="month" id="filterMonth">
   <select id="filterType">
     <option value="all">Semua</option>
     <option value="income">Pemasukan</option>
     <option value="expense">Pengeluaran</option>
   </select>
+  <button onclick="applyFilter()">Filter</button>
+  <button onclick="resetFilter()">Reset</button>
 </div>
 
 <div class="card">
-  <button class="btn-pdf" onclick="exportPDF()">📄 Download PDF</button>
+  <button onclick="exportPDF()">⬇️ Export PDF</button>
 </div>
 
 <div class="card">
-  <h3>Catatan</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Tanggal</th>
-        <th>Jenis</th>
-        <th>Jumlah</th>
-        <th>Keterangan</th>
-        <th>Aksi</th>
-      </tr>
-    </thead>
-    <tbody id="dataList"></tbody>
-  </table>
+<table>
+<thead>
+<tr><th>Tanggal</th><th>Keterangan</th><th>Jenis</th><th>Nominal</th><th>Aksi</th></tr>
+</thead>
+<tbody id="list"></tbody>
+</table>
 </div>
+
+</div>
+
+<!-- jsPDF OFFLINE -->
+<script src="jspdf.umd.min.js"></script>
 
 <script>
-  let data = JSON.parse(localStorage.getItem("cashflow")) || [];
+let data = JSON.parse(localStorage.getItem('cashflow')) || []
+let filtered = [...data]
+const list = document.getElementById('list')
 
-  function addData() {
-    const type = type.value;
-    const amount = parseInt(document.getElementById("amount").value);
-    const note = document.getElementById("note").value;
-    const date = document.getElementById("date").value;
+const rp = n => 'Rp ' + n.toLocaleString('id-ID')
 
-    if (!amount || !date) {
-      alert("Jumlah & tanggal wajib diisi");
-      return;
-    }
+function render(arr = filtered){
+  list.innerHTML=''
+  let i=0,o=0
+  arr.forEach(tx=>{
+    tx.type==='income'?i+=tx.amount:o+=tx.amount
+    list.innerHTML+=`
+    <tr>
+      <td>${tx.date}</td>
+      <td>${tx.desc}</td>
+      <td>${tx.type}</td>
+      <td>${rp(tx.amount)}</td>
+      <td><button class="btn-delete" onclick="del('${tx.id}')">Hapus</button></td>
+    </tr>`
+  })
+  in.textContent=rp(i)
+  out.textContent=rp(o)
+  bal.textContent=rp(i-o)
+}
 
-    data.push({ type, amount, note, date });
-    localStorage.setItem("cashflow", JSON.stringify(data));
+form.onsubmit=e=>{
+  e.preventDefault()
+  data.push({
+    id:Date.now(),
+    date:date.value,
+    desc:desc.value,
+    type:type.value,
+    amount:+amount.value
+  })
+  localStorage.setItem('cashflow',JSON.stringify(data))
+  resetFilter()
+  form.reset()
+}
 
-    document.getElementById("amount").value = "";
-    document.getElementById("note").value = "";
+function del(id){
+  if(!confirm('Hapus data?'))return
+  data=data.filter(d=>d.id!=id)
+  localStorage.setItem('cashflow',JSON.stringify(data))
+  resetFilter()
+}
 
-    render();
-  }
+function applyFilter(){
+  filtered=data.filter(d=>{
+    return (!filterMonth.value||d.date.startsWith(filterMonth.value)) &&
+           (filterType.value==='all'||d.type===filterType.value)
+  })
+  render()
+}
 
-  function deleteData(index) {
-    if (confirm("Hapus data ini?")) {
-      data.splice(index, 1);
-      localStorage.setItem("cashflow", JSON.stringify(data));
-      render();
-    }
-  }
+function resetFilter(){
+  filtered=[...data]
+  filterMonth.value=''
+  filterType.value='all'
+  render()
+}
 
-  function render() {
-    const list = document.getElementById("dataList");
-    list.innerHTML = "";
+/* ===== EXPORT PDF ===== */
+function exportPDF(){
+  const { jsPDF } = window.jspdf
+  const pdf = new jsPDF()
+  pdf.text("LAPORAN CASHFLOW", 14, 15)
 
-    let income = 0, expense = 0;
+  let y=25
+  filtered.forEach(d=>{
+    pdf.text(`${d.date} | ${d.desc} | ${d.type} | ${rp(d.amount)}`, 14, y)
+    y+=7
+  })
 
-    const month = document.getElementById("filterMonth").value;
-    const typeFilter = document.getElementById("filterType").value;
+  pdf.save("cashflow.pdf")
+}
 
-    data.forEach((item, index) => {
-      if (month && !item.date.startsWith(month)) return;
-      if (typeFilter !== "all" && item.type !== typeFilter) return;
-
-      if (item.type === "income") income += item.amount;
-      else expense += item.amount;
-
-      list.innerHTML += `
-        <tr>
-          <td>${item.date}</td>
-          <td>${item.type === "income" ? "Pemasukan" : "Pengeluaran"}</td>
-          <td>Rp ${item.amount.toLocaleString()}</td>
-          <td>${item.note || "-"}</td>
-          <td><button class="hapus" onclick="deleteData(${index})">Hapus</button></td>
-        </tr>
-      `;
-    });
-
-    document.getElementById("totalIncome").innerText = income.toLocaleString();
-    document.getElementById("totalExpense").innerText = expense.toLocaleString();
-    document.getElementById("balance").innerText = (income - expense).toLocaleString();
-  }
-
-  function exportPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
-    doc.text("Cashflow Report", 10, 10);
-
-    let y = 20;
-    data.forEach((d, i) => {
-      doc.text(
-        `${i+1}. ${d.date} | ${d.type} | Rp ${d.amount} | ${d.note || "-"}`,
-        10,
-        y
-      );
-      y += 8;
-    });
-
-    doc.save("cashflow.pdf");
-  }
-
-  document.getElementById("filterMonth").addEventListener("change", render);
-  document.getElementById("filterType").addEventListener("change", render);
-
-  render();
+render()
 </script>
 
 </body>
